@@ -105,7 +105,7 @@ namespace ShareX
 
         private void AddAfterCaptureItems(AfterCaptureTasks afterCaptureTasks)
         {
-            AfterCaptureTasks[] ignore = new AfterCaptureTasks[] { AfterCaptureTasks.None, AfterCaptureTasks.ShowQuickTaskMenu, AfterCaptureTasks.ShowAfterCaptureWindow };
+            AfterCaptureTasks[] ignore = new AfterCaptureTasks[] { };
             int itemHeight = 0;
 
             foreach (AfterCaptureTasks task in Helpers.GetEnums<AfterCaptureTasks>())
@@ -231,10 +231,5 @@ namespace ShareX
             Continue();
         }
 
-        private void btnCopy_Click(object sender, EventArgs e)
-        {
-            TaskSettings.AfterCaptureJob = AfterCaptureTasks.CopyImageToClipboard;
-            FileName = txtFileName.Text;
-        }
     }
 }

@@ -334,11 +334,6 @@ namespace ShareX
                     ClipboardHelpers.Clear();
                 }
 
-                if ((Info.Job == TaskJob.Job || (Info.Job == TaskJob.FileUpload && Info.TaskSettings.AdvancedSettings.UseAfterCaptureTasksDuringFileUpload))
-                    && Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DeleteFile) && !string.IsNullOrEmpty(Info.FilePath) && File.Exists(Info.FilePath))
-                {
-                    File.Delete(Info.FilePath);
-                }
             }
 
             if (!StopRequested && Info.Result != null && Info.Result.IsURLExpected && !Info.Result.IsError)
@@ -369,77 +364,7 @@ namespace ShareX
 
         private void DoUploadJob()
         {
-            if (Program.Settings.ShowUploadWarning && !FirstTimeUploadForm.ShowForm())
-            {
-                Program.Settings.ShowUploadWarning = false;
-                Program.DefaultTaskSettings.AfterCaptureJob = Program.DefaultTaskSettings.AfterCaptureJob.Remove(AfterCaptureTasks.UploadImageToHost);
-                Info.TaskSettings.AfterCaptureJob = Info.TaskSettings.AfterCaptureJob.Remove(AfterCaptureTasks.UploadImageToHost);
-                Info.Result.IsURLExpected = false;
-                RequestSettingUpdate = true;
-                return;
-            }
 
-            if (Program.Settings.ShowLargeFileSizeWarning > 0)
-            {
-                long dataSize = Program.Settings.BinaryUnits ? Program.Settings.ShowLargeFileSizeWarning * 1024 * 1024 : Program.Settings.ShowLargeFileSizeWarning * 1000 * 1000;
-                if (Data != null && Data.Length > dataSize)
-                {
-                    using (MyMessageBox msgbox = new MyMessageBox(Resources.UploadTask_DoUploadJob_You_are_attempting_to_upload_a_large_file, "ShareX",
-                        MessageBoxButtons.YesNo, Resources.UploadManager_IsUploadConfirmed_Don_t_show_this_message_again_))
-                    {
-                        msgbox.ShowDialog();
-                        if (msgbox.IsChecked) Program.Settings.ShowLargeFileSizeWarning = 0;
-                        if (msgbox.DialogResult == DialogResult.No) Stop();
-                    }
-                }
-            }
-
-            if (!StopRequested)
-            {
-                Program.Settings.ShowUploadWarning = false;
-
-                SettingManager.WaitUploadersConfig();
-
-                Status = TaskStatus.Working;
-                Info.Status = Resources.UploadTask_DoUploadJob_Uploading;
-
-                TaskbarManager.SetProgressState(Program.MainForm, TaskbarProgressBarStatus.Normal);
-
-                bool cancelUpload = false;
-
-                if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.ShowBeforeUploadWindow))
-                {
-                    using (BeforeUploadForm form = new BeforeUploadForm(Info))
-                    {
-                        cancelUpload = form.ShowDialog() != DialogResult.OK;
-                    }
-                }
-
-                if (!cancelUpload)
-                {
-                    OnUploadStarted();
-
-                    bool isError = DoUpload(Data, Info.FileName);
-
-                    if (isError && Program.Settings.MaxUploadFailRetry > 0)
-                    {
-                        for (int retry = 1; !StopRequested && isError && retry <= Program.Settings.MaxUploadFailRetry; retry++)
-                        {
-                            DebugHelper.WriteLine("Upload failed. Retrying upload.");
-                            isError = DoUpload(Data, Info.FileName, retry);
-                        }
-                    }
-
-                    if (!isError)
-                    {
-                        OnUploadCompleted();
-                    }
-                }
-                else
-                {
-                    Info.Result.IsURLExpected = false;
-                }
-            }
         }
 
         private bool DoUpload(Stream data, string filename, int retry = 0)
@@ -570,10 +495,6 @@ namespace ShareX
                 DoFileJobs();
             }
 
-            if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.DoOCR))
-            {
-                DoOCR();
-            }
 
             if (Info.IsUploadJob && Data != null && Data.CanSeek)
             {
@@ -590,16 +511,7 @@ namespace ShareX
                 return true;
             }
 
-            if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AddImageEffects))
-            {
-                Image = TaskHelpers.ApplyImageEffects(Image, Info.TaskSettings.ImageSettingsReference);
 
-                if (Image == null)
-                {
-                    DebugHelper.WriteLine("Error: Applying image effects resulted empty image.");
-                    return false;
-                }
-            }
 
             if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.AnnotateImage))
             {
@@ -611,35 +523,15 @@ namespace ShareX
                 }
             }
 
-            if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyImageToClipboard))
-            {
-                ClipboardHelpers.CopyImage(Image, Info.FileName);
-                DebugHelper.WriteLine("Image copied to clipboard.");
-            }
 
-            if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.SendImageToPrinter))
-            {
-                TaskHelpers.PrintImage(Image);
-            }
 
-            if (Info.TaskSettings.AfterCaptureJob.HasFlagAny(AfterCaptureTasks.SaveImageToFile, AfterCaptureTasks.SaveImageToFileWithDialog, AfterCaptureTasks.DoOCR,
-                AfterCaptureTasks.UploadImageToHost))
+            if (Info.TaskSettings.AfterCaptureJob.HasFlagAny(AfterCaptureTasks.SaveImageToFileWithDialog))
             {
                 ImageData imageData = TaskHelpers.PrepareImage(Image, Info.TaskSettings);
                 Data = imageData.ImageStream;
                 Info.FileName = Path.ChangeExtension(Info.FileName, imageData.ImageFormat.GetDescription());
 
-                if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.SaveImageToFile))
-                {
-                    string filePath = TaskHelpers.HandleExistsFile(Info.TaskSettings.GetScreenshotsFolder(), Info.FileName, Info.TaskSettings);
-
-                    if (!string.IsNullOrEmpty(filePath))
-                    {
-                        Info.FilePath = filePath;
-                        imageData.Write(Info.FilePath);
-                        DebugHelper.WriteLine("Image saved to file: " + Info.FilePath);
-                    }
-                }
+             
 
                 if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.SaveImageToFileWithDialog))
                 {
@@ -684,29 +576,6 @@ namespace ShareX
                         } while (!imageSaved);
                     }
                 }
-
-                if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.SaveThumbnailImageToFile))
-                {
-                    string thumbnailFilename, thumbnailFolder;
-
-                    if (!string.IsNullOrEmpty(Info.FilePath))
-                    {
-                        thumbnailFilename = Path.GetFileName(Info.FilePath);
-                        thumbnailFolder = Path.GetDirectoryName(Info.FilePath);
-                    }
-                    else
-                    {
-                        thumbnailFilename = Info.FileName;
-                        thumbnailFolder = Info.TaskSettings.GetScreenshotsFolder();
-                    }
-
-                    Info.ThumbnailFilePath = TaskHelpers.CreateThumbnail(Image, thumbnailFolder, thumbnailFilename, Info.TaskSettings);
-
-                    if (!string.IsNullOrEmpty(Info.ThumbnailFilePath))
-                    {
-                        DebugHelper.WriteLine("Thumbnail saved to file: " + Info.ThumbnailFilePath);
-                    }
-                }
             }
 
             return true;
@@ -714,64 +583,7 @@ namespace ShareX
 
         private void DoFileJobs()
         {
-            if (!string.IsNullOrEmpty(Info.FilePath) && File.Exists(Info.FilePath))
-            {
-                if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.PerformActions) && Info.TaskSettings.ExternalPrograms != null)
-                {
-                    IEnumerable<ExternalProgram> actions = Info.TaskSettings.ExternalPrograms.Where(x => x.IsActive);
-
-                    if (actions.Count() > 0)
-                    {
-                        bool isFileModified = false;
-                        string fileName = Info.FileName;
-
-                        foreach (ExternalProgram fileAction in actions)
-                        {
-                            string modifiedPath = fileAction.Run(Info.FilePath);
-
-                            if (!string.IsNullOrEmpty(modifiedPath))
-                            {
-                                isFileModified = true;
-                                Info.FilePath = modifiedPath;
-
-                                if (Data != null)
-                                {
-                                    Data.Dispose();
-                                }
-
-                                fileAction.DeletePendingInputFile();
-                            }
-                        }
-
-                        if (isFileModified)
-                        {
-                            string extension = Helpers.GetFilenameExtension(Info.FilePath);
-                            Info.FileName = Helpers.ChangeFilenameExtension(fileName, extension);
-
-                            LoadFileStream();
-                        }
-                    }
-                }
-
-                if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyFileToClipboard))
-                {
-                    ClipboardHelpers.CopyFile(Info.FilePath);
-                }
-                else if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.CopyFilePathToClipboard))
-                {
-                    ClipboardHelpers.CopyText(Info.FilePath);
-                }
-
-                if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.ShowInExplorer))
-                {
-                    Helpers.OpenFolderWithFile(Info.FilePath);
-                }
-
-                if (Info.TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.ScanQRCode) && Info.DataType == EDataType.Image)
-                {
-                    QRCodeForm.OpenFormDecodeFromFile(Info.FilePath).ShowDialog();
-                }
-            }
+           
         }
 
         private void DoTextJobs()

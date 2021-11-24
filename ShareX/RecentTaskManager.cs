@@ -139,7 +139,7 @@ namespace ShareX
 
         private void UpdateTrayMenu()
         {
-            ToolStripMenuItem tsmi = Program.MainForm.tsmiTrayRecentItems;
+            ToolStripMenuItem tsmi = new ToolStripMenuItem();
 
             if (Program.Settings.RecentTasksSave && Program.Settings.RecentTasksShowInTrayMenu && Tasks.Count > 0)
             {

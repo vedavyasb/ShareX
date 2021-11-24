@@ -284,21 +284,20 @@ namespace ShareX
                 }
             }).ContinueInCurrentContext(() =>
             {
-                if (!abortRequested && !string.IsNullOrEmpty(path) && File.Exists(path) && TaskHelpers.ShowAfterCaptureForm(taskSettings, out string customFileName, null, path))
+                if (!abortRequested && !string.IsNullOrEmpty(path) && File.Exists(path))
                 {
-                    if (!string.IsNullOrEmpty(customFileName))
+                    using (SaveFileDialog sfd = new SaveFileDialog() { Filter = "mp4 (*.mp4)|*.mp4" })
                     {
-                        string currentFilename = Path.GetFileNameWithoutExtension(path);
-                        string ext = Path.GetExtension(path);
-
-                        if (!currentFilename.Equals(customFileName, StringComparison.InvariantCultureIgnoreCase))
+                        if (sfd.ShowDialog() == DialogResult.OK)
                         {
-                            path = Helpers.RenameFile(path, customFileName + ext);
+                            if (File.Exists(sfd.FileName))
+                            {
+                                File.Delete(sfd.FileName);
+                            }
+
+                            File.Move(path, sfd.FileName);
                         }
                     }
-
-                    WorkerTask task = WorkerTask.CreateFileJobTask(path, taskSettings, customFileName);
-                    TaskManager.Start(task);
                 }
 
                 abortRequested = false;

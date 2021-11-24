@@ -115,24 +115,8 @@ namespace ShareX
     public enum AfterCaptureTasks // Localized
     {
         None = 0,
-        ShowQuickTaskMenu = 1,
-        ShowAfterCaptureWindow = 1 << 1,
-        AddImageEffects = 1 << 2,
-        AnnotateImage = 1 << 3,
-        CopyImageToClipboard = 1 << 4,
-        SendImageToPrinter = 1 << 5,
-        SaveImageToFile = 1 << 6,
-        SaveImageToFileWithDialog = 1 << 7,
-        SaveThumbnailImageToFile = 1 << 8,
-        PerformActions = 1 << 9,
-        CopyFileToClipboard = 1 << 10,
-        CopyFilePathToClipboard = 1 << 11,
-        ShowInExplorer = 1 << 12,
-        ScanQRCode = 1 << 13,
-        DoOCR = 1 << 14,
-        ShowBeforeUploadWindow = 1 << 15,
-        UploadImageToHost = 1 << 16,
-        DeleteFile = 1 << 17
+        AnnotateImage = 1,
+        SaveImageToFileWithDialog = 1 << 1,
     }
 
     [Flags]

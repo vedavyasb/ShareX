@@ -46,8 +46,6 @@ namespace ShareX
             {
                 switch (Job)
                 {
-                    case TaskJob.Job:
-                        return TaskSettings.AfterCaptureJob.HasFlag(AfterCaptureTasks.UploadImageToHost);
                     case TaskJob.DataUpload:
                     case TaskJob.FileUpload:
                     case TaskJob.TextUpload:

@@ -70,7 +70,6 @@
             this.btnCopy.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.btnCopy.Name = "btnCopy";
             this.btnCopy.UseVisualStyleBackColor = true;
-            this.btnCopy.Click += new System.EventHandler(this.btnCopy_Click);
             // 
             // tcTasks
             // 
